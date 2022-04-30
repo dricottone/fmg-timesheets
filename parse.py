@@ -25,16 +25,14 @@ def read_timesheet(filename):
 def parse_timesheet(data):
     t = Timesheet(data)
     t.report_issues()
-    #for index, line in enumerate(t._data):
-    #    print(index, line)
     return []
 
 def extract_projects(structured_data):
     return []
 
 def timesheet(filename):
-    unstructured_data = read_timesheet(filename)
-    structured_data = parse_timesheet(unstructured_data)
+    semistructured_data = read_timesheet(filename)
+    structured_data = parse_timesheet(semistructured_data)
     projects = extract_projects(structured_data)
     return projects
 
