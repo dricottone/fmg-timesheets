@@ -53,6 +53,9 @@ def parse_attrs_doubles(attrs):
         attrs_dict[key] = value
     return attrs_dict
 
+def has_style_left(attrs):
+    return "style" in attrs.keys() and "left" in attrs["style"].keys()
+
 class TimesheetHTMLParser(HTMLParser):
     """A specialization of the `html.parser.HTMLParser` class to handle my
     timesheets.
@@ -63,14 +66,35 @@ class TimesheetHTMLParser(HTMLParser):
     """
     def __init__(self):
         HTMLParser.__init__(self)
+        self._left = 0
+        self._in_div = False
+        self._in_span = False
         self._data = []
+
     def handle_starttag(self, tag, _attrs):
         attrs = parse_attrs_doubles(_attrs)
-        self._data.append(["START", tag, attrs])
+        if self._in_div:
+            if tag == "span":
+                self._in_span = True
+            else:
+                self._in_div = False
+        elif tag == "div" and has_style_left(attrs):
+            self._left = int(attrs["style"]["left"].removesuffix("px"))
+            self._in_div = True
+        else:
+            self._in_span = False
+            self._in_div = False
+
     def handle_endtag(self, tag):
-        self._data.append(["END", tag])
+        self._in_span = False
+        self._in_div = False
+
     def handle_data(self, data):
-        self._data.append(["DATA", "", data.splitlines()])
+        if self._in_span:
+            self._data.append((data.splitlines()[0], self._left, ))
+        self._in_span = False
+        self._in_div = False
+
     def dump(self):
         return self._data
 

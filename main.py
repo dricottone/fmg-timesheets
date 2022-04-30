@@ -7,7 +7,7 @@ import parse
 
 def main(filelist):
     print(f"processing {len(filelist)} files")
-    for filename in (filelist[4],):
+    for filename in (filelist):
         parse.timesheet(filename)
 
 if __name__ == "__main__":
@@ -18,6 +18,5 @@ if __name__ == "__main__":
             filelist.append(filepath)
         else:
             print(f"no such file: '{filename}'")
-    
     main(filelist)
 

@@ -2,7 +2,10 @@ index                   20px
 timecode (usually "ST") 40px
 project                 39px
 timetype                201px
-
+"Notes"                 40px
+notesbegin              40px
+notesend                99px
+note                    220px
 
 
 day1     571px or 572px
@@ -14,43 +17,6 @@ day6     696px or 697px
 day7     721px or 722px
 rowtotal 751px or 753px or 756px
 
-document header:
-"Timesheet"
-"Mon N, YYYY - Mon N, YYYY"
-"Location:"
-"[E01] Fors Marsh Group"
-"Department:"
-"[3200] Advanced Analytics"
-"Employee Type:"
-"[1] Annual Salary"
-"Location (Default"
-"[LOCAL] Location"
-"Function:"
-"Exempt:"
-"Status:"
-"[1] Full Time"
-"Yes"
-"Approved"
-"Post Status:"
-"Validation:"
-"Date/Time:"
-"Posted"
-"Passed"
-"Mon N, YYYY HH:MM"
-"Total Tomesheet:"
-"Standard Hours:"
-"Total Billable:"
-"Percent Billability:"
-<total hours on spreadsheet>
-<minimum hours for spreadsheet>
-<total billable hours on spreadsheet>
-<total billable hours / total hours>
-
-left column header:
-"ID"
-"Time Code"
-"Project"
-"TimeType"
 
 right colummn header:
 "Mon"
