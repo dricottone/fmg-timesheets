@@ -2,7 +2,9 @@
 
 from re import compile as re_compile
 
-PATTERNS = (
+from .timeentry import TimeEntry, ENTRY_PATTERNS
+
+PAGE_PATTERNS = (
     re_compile("[ADFJMNOS][aceopu][bcglnprtvy] [1-9][0-9]?, 20[12][89012] [012][0-9]:[0-5][0-9]"),
     re_compile("\(GMT-0[456]:00\) .*"),
     re_compile("Page [1-9][0-9]?"),
@@ -35,28 +37,42 @@ def is_multiple_8(string):
     except:
         return False
 
-class Timesheet(object):
+class TimeSheet(object):
     def __init__(self, semistructured_data):
+        self._warnings = []
         self._issues = []
         self._data = self.beat_data_with_a_stick(semistructured_data)
         self.assert_header()
         self.parse_header()
         self.parse_footer()
         self.parse_pages()
+        self.parse_entries()
 
     def __str__(self):
-        return self.header.get("dates", "Timesheet(...)")
+        return self.header.get("dates", "TimeSheet(...)")
+
+    def __len__(self):
+        return len(self._data)
 
     def report_issues(self):
+        if self._warnings:
+            print(f"There are some warnings in the timesheet for {self}...")
+            for warning in self._warnings:
+                print(warning)
         if self._issues:
             print(f"There are some issues in the timesheet for {self}...")
             for issue in self._issues:
                 print(issue)
             for index, line in enumerate(self._data):
                 print(index, line)
+        for entry in self._entries:
+            entry.report_issues()
 
     def log_issue(self, *parts):
         self._issues.append(''.join(parts))
+
+    def log_warning(self, *parts):
+        self._warnings.append(''.join(parts))
 
     def beat_data_with_a_stick(self, data):
         """A fragile solution to the problems resulting from
@@ -64,12 +80,12 @@ class Timesheet(object):
         """
         # a small number of timesheets have a 'Doc.No.' field
         if data[14][0] == "Doc.No." and data[17][0] == "1":
-            self.log_issue("beat_data_with_a_stick: killing 'Doc.No.' fields")
+            self.log_warning("beat_data_with_a_stick: killing 'Doc.No.' fields")
             #Note: subtract 1 due to the other operation realigning indices
             data = remove_item(data, 14)
             data = remove_item(data, 17-1)
         elif data[16][0] == "Doc.No." and data[19][0] == "1":
-            self.log_issue(
+            self.log_warning(
                 "beat_data_with_a_stick: ",
                 "killing 'Doc.No.' label and field",
             )
@@ -78,7 +94,7 @@ class Timesheet(object):
 
         # 'Post Status:' can float up if the status is 'Not posted'
         if data[6][0] == "Post Status:" and data[7][0] == "Not posted":
-            self.log_issue(
+            self.log_warning(
                 "beat_data_with_a_stick: ",
                 "re-sorting post status label and field",
             )
@@ -88,7 +104,7 @@ class Timesheet(object):
 
         # 'Function:' and '[1] Full Time' can float up together
         if data[4][0] == "Function:" and data[5][0] == "[1] Full Time":
-            self.log_issue(
+            self.log_warning(
                 "beat_data_with_a_stick: ",
                 "re-sorting function label and field",
             )
@@ -96,7 +112,7 @@ class Timesheet(object):
             data = move_item(data, 4, 10+1)
             data = move_item(data, 5-1, 13)
         elif data[8][0] == "Function:" and data[11][0] == "[1] Full Time":
-            self.log_issue(
+            self.log_warning(
                 "beat_data_with_a_stick: ",
                 "re-sorting function label and field",
             )
@@ -105,7 +121,7 @@ class Timesheet(object):
 
         # 'Percent Billability:' can float down
         if data[28][0] == "Percent Billability:":
-            self.log_issue(
+            self.log_warning(
                 "beat_data_with_a_stick: ",
                 "re-sorting percent billability label",
             )
@@ -113,7 +129,7 @@ class Timesheet(object):
 
         # 'Validation:' and 'Passed' can float up
         if data[16][0] == "Validation:" and data[19][0] == "Passed":
-            self.log_issue(
+            self.log_warning(
                 "beat_data_with_a_stick: ",
                 "re-sorting validation label and field",
             )
@@ -122,7 +138,7 @@ class Timesheet(object):
 
         # 'Posted'/'Not posted' can float up
         if data[17][0] == "Posted" or data[17][0] == "Not posted":
-            self.log_issue(
+            self.log_warning(
                 "beat_data_with_a_stick: ",
                 "re-sorting post status field",
             )
@@ -130,7 +146,7 @@ class Timesheet(object):
 
         # 'ID', 'Time Code', 'Project', and 'TimeType' and float down
         if data[41][0] == "ID" and data[42][0] == "Time Code" and data[43][0] == "Project" and data[44][0] == "TimeType":
-            self.log_issue(
+            self.log_warning(
                 "beat_data_with_a_stick: ",
                 "re-sorting ID, Time Code, Project, and TimeType header",
             )
@@ -139,7 +155,7 @@ class Timesheet(object):
             data = move_item(data, 43, 32)
             data = move_item(data, 44, 33)
         elif data[43][0] == "ID" and data[44][0] == "Time Code" and data[45][0] == "Project" and data[46][0] == "TimeType":
-            self.log_issue(
+            self.log_warning(
                 "beat_data_with_a_stick: ",
                 "re-sorting ID, Time Code, Project, and TimeType header",
             )
@@ -227,7 +243,7 @@ class Timesheet(object):
     def parse_footer(self):
         """Loop though lines to identify the document footer and clear it."""
         target = None
-        for n in range(len(self._data)-1, 0, -1):
+        for n in range(len(self)-1, 0, -1):
             if self._data[n][0] == "Hours Distribution by Time Code":
                 target = n
                 break
@@ -243,6 +259,7 @@ class Timesheet(object):
         """Loop through lines to identify page headers and footers, and clear
         those lines.
         """
+        # Pages begin with "Timesheet"
         page_breaks = []
         for index, line in enumerate(self._data):
             if line[0] == "Timesheet":
@@ -253,15 +270,54 @@ class Timesheet(object):
                 "could not locate any page breaks",
             )
 
+        # At each page break, there is a page footer sequence before:
+        #  + "Mmm N, YYYY HH:MM"
+        #  + "(GMT-0H:00) TZNAME"
+        #  + "Page N"
+        #  + "of N"
+        # ...and a page header sequence after:
+        #  + "Mmm N, YYYY - Mmm N, YYYY"
+        #  + "ID"
+        #  + "Time Code"
+        #  + "Project"
+        #  + "TimeType"
+        # None of this is useful data. Immediately delete it.
         for page_break in reversed(page_breaks):
             i = page_break - 7
             while i < page_break:
                 j = 0
-                while j < len(PATTERNS):
-                    if PATTERNS[j].match(self._data[i][0]):
+                while j < len(PAGE_PATTERNS):
+                    if PAGE_PATTERNS[j].match(self._data[i][0]):
                         del self._data[i]
                         j = 0
                     else:
                         j += 1
                 i += 1
+
+    def parse_entries(self):
+        """Loop through lines to identify time entries."""
+        i = 0
+        entries = []
+        while i < len(self):
+            if self._data[i][1] == 20:
+                if ENTRY_PATTERNS[0].match(self._data[i][0]):
+                    entries.append([self._data[i]])
+                else:
+                    self.log_issue(
+                        "parse_entries: ",
+                        "something unexpected in the entry start position ",
+                        f"({self._data[i][0]})",
+                    )
+            else:
+                if len(entries)>0:
+                    entries[-1].append(self._data[i])
+                else:
+                    self.log_issue(
+                        "parse_entries: ",
+                        "something unexpected before any entries started ",
+                        f"({self._data[i][0]})",
+                    )
+            i += 1
+
+        self._entries = [TimeEntry(e, str(self), e[0][0]) for e in entries]
 

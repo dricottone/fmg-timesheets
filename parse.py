@@ -15,7 +15,7 @@ from pprint import pprint
 
 from parser.html import parse as parse_html
 from parser.pdf import parse as parse_pdf
-from parser.timesheet import Timesheet
+from parser.timesheet import TimeSheet
 
 def read_timesheet(filename):
     unstructured_data = parse_pdf(filename)
@@ -23,7 +23,7 @@ def read_timesheet(filename):
     return semistructured_data
 
 def parse_timesheet(data):
-    t = Timesheet(data)
+    t = TimeSheet(data)
     t.report_issues()
     return []
 
