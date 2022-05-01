@@ -284,7 +284,11 @@ class TimeSheet(object):
         # None of this is useful data. Immediately delete it.
         for page_break in reversed(page_breaks):
             i = page_break - 7
-            while i < page_break:
+            # don't question why this is necessary
+            if str(self)=="May 16, 2019 - May 31, 2019" and page_break == 275:
+                i -= 30
+
+            while i <= page_break:
                 j = 0
                 while j < len(PAGE_PATTERNS):
                     if PAGE_PATTERNS[j].match(self._data[i][0]):
@@ -309,7 +313,9 @@ class TimeSheet(object):
                         f"({self._data[i][0]})",
                     )
             else:
-                if len(entries)>0:
+                if self._data[i][0] in ("Mon", "Tue Wed", "Thu", "Fri", "Sat", "Sun", "Total", ):
+                    pass
+                elif len(entries)>0:
                     entries[-1].append(self._data[i])
                 else:
                     self.log_issue(
