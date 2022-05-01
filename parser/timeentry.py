@@ -143,7 +143,6 @@ class TimeEntry(object):
                 del self._data[0:3]
 
     def parse_entry_notes(self):
-        print(self._data)
         self._notes = []
         if len(self) and self._data[0][0] == "Notes":
             del self._data[0]

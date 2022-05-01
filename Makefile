@@ -1,6 +1,7 @@
 .PHONY: clean
 clean:
 	rm --force --recursive __pycache__
+	rm --force --recursive **/__pycache__
 	rm --force --recursive .venv
 
 .venv:
