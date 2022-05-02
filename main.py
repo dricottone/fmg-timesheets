@@ -3,12 +3,21 @@
 import sys
 import pathlib
 
-import parse
+from parser.xml import parse as parse_xml
+from parser.pdf import parse as parse_pdf
+from parser.timesheet import TimeSheet
 
 def main(filelist):
     print(f"processing {len(filelist)} files")
     for filename in (filelist):
-        parse.timesheet(filename)
+        xml_filename = filename.parent.joinpath(filename.name + ".xml")
+        csv_filename = filename.parent.joinpath(filename.name + ".csv")
+
+        parse_pdf(filename, xml_filename)
+        parse_xml(xml_filename, csv_filename)
+
+        #timesheet = TimeSheet(semistructured_data)
+        #timesheet.report_issues()
 
 if __name__ == "__main__":
     filelist = []

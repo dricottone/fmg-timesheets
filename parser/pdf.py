@@ -2,41 +2,27 @@
 
 from io import StringIO
 
-# Crash Course on pdfminer
-#
-# Extract text from PDFs like...
-#
-# ```
-# from pdfminer.high_level import extract_text
-# with open(filename, "rb") as f:
-#   text = extract_text(f)
-# ```
-#
-# The alternative is to use something like...
-#
-# ```
-# from io import StringIO
-# from pdfminer.high_level import extract_text_to_fp
-# from pdfminer.layout import LAParams
-# buffer = StringIO()
-# with open(filename, "rb") as f:
-#   extract_text_to_fp(f, buffer, laparams=LAParams(), output_type="html", codec=None)
-# html = buffer.getvalue()
-# ```
-
-from pdfminer.high_level import extract_text_to_fp
+from pdfminer.converter import XMLConverter
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.pdfpage import PDFPage
 from pdfminer.layout import LAParams
 
-def parse(filename):
-    """Read a binary PDF-encoded file and convert it into an HTML-encoded
-    string.
-    """
+def parse(filename_in, filename_out):
+    """Main routine. Reads a PDF file and writes an XML file."""
     buffer = StringIO()
-    try:
-        with open(filename, "rb") as f:
-            extract_text_to_fp(f, buffer, laparams=LAParams(), output_type="html", codec=None)
-        data = buffer.getvalue()
-    finally:
-        buffer.close()
-    return data
+    manager = PDFResourceManager(caching=False)
+    converter = XMLConverter(manager, buffer, laparams=LAParams(), codec=None)
+    interpreter = PDFPageInterpreter(manager, converter)
+
+    with open(filename_in, "rb") as f:
+        for page in PDFPage.get_pages(f, caching=False):
+            interpreter.process_page(page)
+
+    with open(filename_out, "w") as f:
+        first = True
+        for line in buffer.getvalue().splitlines():
+            if not first:
+                f.write(line+"\n")
+            first = False
+        f.write("</pages>\n")
 
