@@ -112,7 +112,7 @@ class TimeSheetHandler(handler.ContentHandler):
                 if not handled:
                     text = self.pop_buffer()
                     if text=="Hours Distribution by Time Code":
-                        self.in_hours_distribution = True
+                        self.record_hours_distribution()
                     else:
                         self.record_text(text)
                 self.in_textbox = False
@@ -137,6 +137,14 @@ class TimeSheetHandler(handler.ContentHandler):
     def record_text(self, data):
         """Helper function to append new text data to the line buffer."""
         self.line_buffer[-1].append(data)
+
+    def record_hours_distribution(self):
+        """Helper function to fudge some numbers. Inflate the y-dimension of
+        the final value in order to better catch some footer elements,
+        especially (sub)total rows.
+        """
+        self.in_hours_distribution = True
+        self.line_buffer[-1][1] = str(float(self.line_buffer[-1][1]) + 5)
 
     def append_buffer(self, data):
         """Helper function to append new character data to the text buffer."""

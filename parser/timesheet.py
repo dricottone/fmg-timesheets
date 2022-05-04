@@ -42,6 +42,7 @@ class TimeEntry(object):
         self.data = {}
         self.reference_date = None
         self.in_notes = False
+        self.final = False
 
     def assert_equal(self, value, should_be):
         if value != should_be:
@@ -51,6 +52,13 @@ class TimeEntry(object):
         """Given a string like '1.25' and a day offset between 0 and 6, set
         hours into a date.
         """
+        if self.final:
+            printf(
+                "hours ({0}) set after entry finalized",
+                hours,
+            )
+            return
+
         if self.reference_date is None:
             printf(
                 "hours ({0}) set before a reference date",
@@ -65,6 +73,13 @@ class TimeEntry(object):
 
     def set_total_week_hours(self, total_hours):
         """Given a string like '1.25', validate set hours for a week."""
+        if self.final:
+            printf(
+                "total week hours ({0}) set after entry finalized",
+                total_hours,
+            )
+            return
+
         if self.reference_date is None:
             printf(
                 "total week hours ({0}) set before a reference date",
@@ -81,11 +96,13 @@ class TimeEntry(object):
 
         self.assert_equal(sum_hours, decimal.Decimal(total_hours))
 
+        self.advance_reference_date()
+
     def set_total_line_hours(self, total_hours):
         """Given a string like '1.25', validate set hours for a line entry."""
-        if self.reference_date is None:
+        if self.final:
             printf(
-                "total line hours ({0}) set before a reference date",
+                "total line hours ({0}) set after entry finalized",
                 total_hours,
             )
             return
@@ -95,6 +112,8 @@ class TimeEntry(object):
             sum_hours += hours
 
         self.assert_equal(sum_hours, decimal.Decimal(total_hours))
+
+        self.mark_final()
 
     def advance_reference_date(self):
         """Mark the reference date as invalid."""
@@ -118,7 +137,7 @@ class TimeEntry(object):
 
     def set_label(self, label):
         """Given a string, set the human-readable project label."""
-        if not self.label and not self.in_notes:
+        if self.label is None and not self.in_notes:
             self.label = label
 
     def mark_notes(self):
@@ -127,12 +146,18 @@ class TimeEntry(object):
         """
         self.in_notes = True
 
+    def mark_final(self):
+        """Mark that no more ho9urs should be accepted."""
+        self.final = True
+
 class TimeSheet(object):
     def __init__(self, data):
         self.data = data
         self.entries = []
         for row in range(len(self.data)):
-            self.parse_row(row)
+            rc = self.parse_row(row)
+            if rc:
+                break
 
     def set_hours(self, day, hours):
         """Given a string like '1.25' and a day offset between 0 and 6, set
@@ -171,7 +196,11 @@ class TimeSheet(object):
         """Given a string like '12345.123.12.123', set the official project
         code.
         """
-        self.entries[-1].set_project(project)
+        if " " in project:
+            project_timetype = project.split(" ", 1)
+            self.entries[-1].set_project(project_timetype[0])
+        else:
+            self.entries[-1].set_project(project)
 
     def set_label(self, label):
         """Given a string, set the human-readable project label."""
@@ -186,7 +215,7 @@ class TimeSheet(object):
     def parse_row(self, index):
         """Parse a row of data and dispatch between time entry methods."""
         if len(self.data[index])<3:
-            return
+            return True
 
         if APPROVED_PATTERN.match(self.data[index][2]):
             pass
@@ -233,6 +262,8 @@ class TimeSheet(object):
             self.mark_notes()
         else:
             self.set_label(self.data[index][2])
+
+        return False
 
 def parse(filename):
     with open(filename, "r", newline="") as f:
