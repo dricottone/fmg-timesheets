@@ -8,8 +8,10 @@ from parser.xml import parse as parse_xml
 from parser.pdf import parse as parse_pdf
 from parser.timesheet import parse as parse_timesheet
 
+from exporter.long_csv import export
+
 def main(filelist):
-    projects = {}
+    timesheets = []
 
     print(f"processing {len(filelist)} files")
     for filename in (filelist):
@@ -19,20 +21,10 @@ def main(filelist):
         parse_pdf(filename, xml_filename)
         parse_xml(xml_filename, csv_filename)
 
-        entries = parse_timesheet(csv_filename)
-        for entry in entries:
-            if entry.time_code in ("HOL", "OTU", "VAC", "OPL", ):
-                if entry.time_code not in projects.keys():
-                    projects[entry.time_code] = {}
-                for date, hours in entry.data.items():
-                    projects[entry.time_code][date] = hours
-            else:
-                if entry.project not in projects.keys():
-                    projects[entry.project] = {}
-                for date, hours in entry.data.items():
-                    projects[entry.project][date] = hours
+        timesheets.append(parse_timesheet(csv_filename))
 
-    pprint(projects)
+    dest_filename = pathlib.Path("analysis/timesheets_sas.csv")
+    export(dest_filename, timesheets)
 
 if __name__ == "__main__":
     filelist = []
