@@ -187,11 +187,11 @@ class TimeSheetHandler(handler.ContentHandler):
         loc = (int(float(location_xy[0])), int(float(location_xy[1])), )
 
         if self.pagenum == "1":
-            if is_approximately(loc, (333, 524, )):
+            if is_approximately(loc, (335, 524, )):
                 self.in_header_footer_parts["timesheet_label"] = True
                 return True
 
-            elif is_approximately(loc, (333, 504, )):
+            elif is_approximately(loc, (335, 504, )):
                 self.in_header_footer_parts["timesheet_value"] = True
                 return True
 
