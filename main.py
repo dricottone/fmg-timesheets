@@ -10,6 +10,8 @@ from parser.timesheet import parse as parse_timesheet
 
 from exporter.long_csv import export
 
+from analysis.totals import totals, total_ocps2020
+
 def main(filelist):
     timesheets = []
 
@@ -25,6 +27,8 @@ def main(filelist):
 
     dest_filename = pathlib.Path("analysis/timesheets_sas.csv")
     export(dest_filename, timesheets)
+
+    total_ocps2020(timesheets)
 
 if __name__ == "__main__":
     filelist = []
